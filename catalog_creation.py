@@ -193,32 +193,32 @@ class catalog_creation():
 
         return image
 
-    def registrar_livro(self,  banco, table, columns, values):
-
-        columns = '(isbn, titulo, capa,quantidade_disponivel, reservado, data_reserva, nome_aluno, data_devolucao)'
-        values = "('123456789xyz', 'livro01', 'xxx', 1, 'NAO', '', '', '')"
-
-        dataset = pd.read_csv('C:\\Users\\Jjr_a\\PycharmProjects\\book_catalog\\dataset_livros.csv')
-        dataset['ISBN'] = dataset['ISBN'].astype(str)
-
-        check_cod = dataset.loc[dataset['ISBN'] == isbn]
-
-        if len(check_cod) == 0:
-            # Crie uma nova linha como um dicionário de dados
-            nova_linha = {'ISBN': isbn,
-                          "TITULO": titulo,
-                          "CAPA": capa_url,
-                          'RESERVADO': 'NÃO',
-                          'DATA_RESERVA': '',
-                          'NOME_ALUNO': '',
-                          'DATA_DEVOLUCAO': ''}
-
-            # Use o método append para adicionar a nova linha ao DataFrame
-            dataset = dataset.append(nova_linha, ignore_index=True)
-            dataset.to_csv('C:\\Users\\Jjr_a\\PycharmProjects\\book_catalog\\dataset_livros.csv', index=False)
-            st.write('Livro registrado!')
-        else:
-            st.write('Código de barras já registrado!')
+    # def registrar_livro(self,  banco, table, columns, values):
+    #
+    #     columns = '(isbn, titulo, capa,quantidade_disponivel, reservado, data_reserva, nome_aluno, data_devolucao)'
+    #     values = "('123456789xyz', 'livro01', 'xxx', 1, 'NAO', '', '', '')"
+    #
+    #     dataset = pd.read_csv('C:\\Users\\Jjr_a\\PycharmProjects\\book_catalog\\dataset_livros.csv')
+    #     dataset['ISBN'] = dataset['ISBN'].astype(str)
+    #
+    #     check_cod = dataset.loc[dataset['ISBN'] == isbn]
+    #
+    #     if len(check_cod) == 0:
+    #         # Crie uma nova linha como um dicionário de dados
+    #         nova_linha = {'ISBN': isbn,
+    #                       "TITULO": titulo,
+    #                       "CAPA": capa_url,
+    #                       'RESERVADO': 'NÃO',
+    #                       'DATA_RESERVA': '',
+    #                       'NOME_ALUNO': '',
+    #                       'DATA_DEVOLUCAO': ''}
+    #
+    #         # Use o método append para adicionar a nova linha ao DataFrame
+    #         dataset = dataset.append(nova_linha, ignore_index=True)
+    #         dataset.to_csv('C:\\Users\\Jjr_a\\PycharmProjects\\book_catalog\\dataset_livros.csv', index=False)
+    #         st.write('Livro registrado!')
+    #     else:
+    #         st.write('Código de barras já registrado!')
 
     def reservar_livro(self, codigo_de_barra, nome_aluno):
         dataset = pd.read_csv('C:\\Users\\Jjr_a\\PycharmProjects\\book_catalog\\dataset_livros.csv')

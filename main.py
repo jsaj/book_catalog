@@ -25,42 +25,35 @@ op = st.sidebar.selectbox("Escolha uma opção:",
 
 if op == "Cadastrar livro":
     st.header("Registrar Livro")
-
+    df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
     isbn = st.text_input('Digite o ISBN do livro: ')
-    if len(isbn) > 1 and len(isbn) <= 13:
-        try:
-            titulo, capa_url = obj.find_url_book(isbn)
-            if not titulo:
-                titulo = st.text_input('Informe o título do livro: ')
-
-            # isbn_10, titulo, authors = obj.get_book_info_from_google_books(isbn)
-            # if isbn_10 == None and titulo == None and authors == None:
-            #     titulo = st.text_input('Informe o título do livro: ')
-            #     capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
-            # else:
-            #     # capa_url = obj.find_url_book(isbn_10, titulo, authors)
-            #     if capa_url == None and titulo != None:
-            #         capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
-            #     elif titulo == None:
-            #         titulo = st.text_input('Informe o título do livro: ')
-
-            qtd_disponivel = st.text_input('Informe a quantidade disponível: ')
-
-            if titulo and titulo.strip():
-                st.write('Título: ', titulo)
-            image_bytes = requests.get(capa_url).content
-            st.image(BytesIO(image_bytes), width=150)
-
-            if st.button("Cadastrar"):
-                colunas = '(isbn, titulo, capa, qt_disponivel)'
-                valores = f"('{isbn}', '{titulo}', '{capa_url}', '{qtd_disponivel}')"
-                conector_db.insert_data(conexao, 'catalogo_livros', colunas, valores)
-
-                st.success("Livro cadastrado com sucesso!")
-        except Exception as e:
-            st.write(f"Ocorreu um erro: {str(e)}")
+    check_isbn = df_catalogo.loc[df_catalogo['isbn'] == isbn]
+    if len(check_isbn) > 0:
+        st.write('Livro já cadastrado. Tente novamente')
     else:
-        st.write('Preencha os campos solicitados!')
+        if len(isbn) > 1 and len(isbn) <= 13:
+            try:
+                titulo, capa_url = obj.find_url_book(isbn)
+                if not titulo:
+                    titulo = st.text_input('Informe o título do livro: ')
+
+                qtd_disponivel = st.text_input('Informe a quantidade disponível: ')
+
+                if titulo and titulo.strip():
+                    st.write('Título: ', titulo)
+                image_bytes = requests.get(capa_url).content
+                st.image(BytesIO(image_bytes), width=150)
+
+                if st.button("Cadastrar"):
+                    colunas = '(isbn, titulo, capa, qt_disponivel)'
+                    valores = f"('{isbn}', '{titulo}', '{capa_url}', '{qtd_disponivel}')"
+                    conector_db.insert_data(conexao, 'catalogo_livros', colunas, valores)
+
+                    st.success("Livro cadastrado com sucesso!")
+            except Exception as e:
+                st.write(f"Ocorreu um erro: {str(e)}")
+        else:
+            st.write('Preencha os campos solicitados!')
 
 elif op == 'Catálogo':
     # Carregar o catálogo de livros
