@@ -6,7 +6,11 @@ import json
 from bs4 import BeautifulSoup
 import io
 from io import BytesIO
+import streamlit as st
+import av
+import numpy as np
 
+from streamlit_webrtc import webrtc_streamer
 class catalog_creation():
     # def identificar_codigo_barra(self, path):
     #
@@ -266,3 +270,26 @@ class catalog_creation():
                         columns[col].write(f"<p style='font-size: 14px;'>ISBN: {isbn}</p>", unsafe_allow_html=True)
                         columns[col].image(capa, caption=titulo, use_column_width=True)
 
+    def atualizar_capa(self, op, df):
+        if op == 'Sim':
+
+            # Widget de upload de arquivo
+            uploaded_file = st.file_uploader("Escolha uma imagem...", type=["jpg", "jpeg", "png"])
+
+            # Verificar se um arquivo foi carregado
+            if uploaded_file is not None:
+                # Exibir a imagem carregada
+                st.image(uploaded_file, caption="Imagem Carregada", use_column_width=True)
+
+                # Você também pode salvar a imagem ou realizar outras operações com ela
+                # Por exemplo, para salvar a imagem carregada em um arquivo:
+                # with open("imagem_carregada.jpg", "wb") as f:
+                #     f.write(uploaded_file.read())
+                #
+                # st.success("Imagem carregada e salva com sucesso!")
+
+            # Nota informativa
+            st.info("Faça o upload de uma imagem nos formatos JPG, JPEG, PNG ou GIF.")
+
+        else:
+            return df['capa'].values[0]

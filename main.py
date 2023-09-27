@@ -21,7 +21,7 @@ obj = catalog_creation()
 
 # Crie uma barra lateral com opções
 op = st.sidebar.selectbox("Escolha uma opção:",
-                          ["Catálogo", "Cadastrar livro", "Reservar livro", "Devolver livro"])
+                          ["Catálogo", "Cadastrar livro", "Atualizar livro", "Reservar livro", "Devolver livro", "Remover livro"])
 
 if op == "Cadastrar livro":
     st.header("Registrar Livro")
@@ -58,6 +58,7 @@ if op == "Cadastrar livro":
 elif op == 'Catálogo':
     # Carregar o catálogo de livros
     df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
+    df_catalogo = df_catalogo.sort_values(by='titulo', ascending=True)
 
     entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
 
@@ -66,6 +67,8 @@ elif op == 'Catálogo':
             check_isbn = df_catalogo.loc[
                 (df_catalogo['isbn'].astype(str).str.contains(entrada_isbn_titulo, case=False))
                 | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo, case=False))].reset_index(drop=True)
+
+            check_isbn = check_isbn.sort_values(by='titulo', ascending=True)
 
             if not check_isbn.empty:
                 obj.consultar_livro(check_isbn)
@@ -135,14 +138,14 @@ elif op == 'Catálogo':
                         # Exibir a imagem redimensionada com a marca "X" e texto, se aplicável
                         columns[col].write(f"<p style='font-size: 14px; margin-bottom: 0px;'>ISBN: {isbn}</p>", unsafe_allow_html=True)
                         qt_disponivel = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'qt_disponivel'].values[0]
-                        # if qt_disponivel > 1:
-                        #     columns[col].write(f"<p style='font-size: 14px;'>{qt_disponivel} Exemplares</p>", unsafe_allow_html=True)
-                        # elif qt_disponivel == 1:
-                        #     columns[col].write(f"<p style='font-size: 14px;'>{qt_disponivel} Exemplar</p>",
-                        #                        unsafe_allow_html=True)
-                        # else:
-                        #     columns[col].write(f"<p style='font-size: 14px;'>Indisponível</p>",
-                        #                        unsafe_allow_html=True)
+                        if qt_disponivel > 1:
+                            columns[col].write(f"<p style='font-size: 14px;'>{qt_disponivel} Exemplares</p>", unsafe_allow_html=True)
+                        elif qt_disponivel == 1:
+                            columns[col].write(f"<p style='font-size: 14px;'>{qt_disponivel} Exemplar</p>",
+                                               unsafe_allow_html=True)
+                        else:
+                            columns[col].write(f"<p style='font-size: 14px;'>Indisponível</p>",
+                                               unsafe_allow_html=True)
                         columns[col].image(capa, caption=titulo, use_column_width=True)
 
                     except Exception as e:
@@ -180,13 +183,13 @@ elif op == 'Reservar livro':
                     with col1:
                         st.write(f"ISBN: {check_isbn['isbn'].values[0]}")
                         st.write(f"Título: {check_isbn['titulo'].values[0]}")
-                        nome_aluno = st.text_input('Digite o nome do aluno:', value="")
+                        nome_aluno = st.text_input('Digite o nome do aluno/professor:', value="")
                         st.text("")  # Adiciona um espaço em branco para ajustar a altura
 
                     with col2:
                         capa_url = check_isbn['capa'].values[0]
                         image_width = 200
-                        image_height = 200
+                        image_height = 250
 
                         response = requests.get(capa_url)
                         if response.status_code == 200:
@@ -220,107 +223,312 @@ elif op == 'Reservar livro':
     except Exception as e:
         st.error(f"Ocorreu um erro: {str(e)}")
 
-elif 'Devolver livro':
+elif op == 'Devolver livro':
 
     try:
-        st.header("Reservar Livro")
+        st.header("Devolver Livro")
 
         df_reserva = conector_db.read_data(conexao, 'reserva_livros')
         df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
 
-        entrada_isbn = st.text_input('Digite o ISBN do livro: ')
-        nomes_alunos = df_reserva.loc[df_reserva['isbn'] == entrada_isbn, 'nome_aluno'].values
-        entrada_aluno = st.selectbox("Selecione o aluno:", nomes_alunos)
+        entrada_isbn, entrada_aluno = None, None
 
-        # entrada_aluno = st.text_input('Digite o nome do aluno: ')
+        opcao_reserva = st.selectbox('Escolha uma opção: ', ['Pesquisar por ISBN', 'Pesquisar pelo aluno/professor'])
+        if opcao_reserva == 'Pesquisar por ISBN':
 
-        quantidade_disponivel = 0
-        check_isbn = pd.DataFrame()
-        if entrada_isbn:
-            entrada_isbn = entrada_isbn.lower()
+            entrada_isbn = st.text_input('Digite o ISBN do livro: ')
+            nomes_alunos = df_reserva.loc[df_reserva['isbn'] == entrada_isbn, 'nome_aluno'].values
+            if len(nomes_alunos) != 0:
+                entrada_aluno = st.selectbox("Selecione o aluno/professor:", nomes_alunos)
+        else:
+            entrada_aluno = st.text_input('Digite o nome do aluno/professor: ')
 
-        if entrada_isbn and not entrada_aluno:
-            check_isbn = df_reserva.loc[
-                df_reserva['isbn'].str.lower().str.contains(entrada_isbn)].reset_index(drop=True)
+        if entrada_isbn or entrada_aluno:
+            check_isbn = pd.DataFrame()
 
-            if not check_isbn.empty:
-                quantidade_disponivel = \
-                df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'qt_disponivel'].values[0]
+            if entrada_isbn:
+                entrada_isbn = entrada_isbn.lower()
 
-        elif entrada_isbn and entrada_aluno:
-            entrada_aluno = entrada_aluno.lower()
-            check_isbn = df_reserva.loc[
-                (df_reserva['isbn'].str.lower().str.contains(entrada_isbn))
-                & (df_reserva['nome_aluno'].str.lower().str.contains(entrada_aluno))].reset_index(drop=True)
+            if entrada_isbn and not entrada_aluno:
+                check_isbn = df_reserva.loc[
+                    df_reserva['isbn'].str.lower().str.contains(entrada_isbn)].reset_index(drop=True)
 
-            if not check_isbn.empty:
-                quantidade_disponivel = \
-                df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'qt_disponivel'].values[0]
+                if not check_isbn.empty:
+                    quantidade_disponivel = \
+                    df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'qt_disponivel'].values[0]
 
-        if not entrada_isbn and not entrada_aluno:
+            elif entrada_isbn and entrada_aluno:
+                entrada_aluno = entrada_aluno.lower()
+                check_isbn = df_reserva.loc[
+                    (df_reserva['isbn'].str.lower().str.contains(entrada_isbn))
+                    & (df_reserva['nome_aluno'].str.lower().str.contains(entrada_aluno))].reset_index(drop=True)
+
+                if not check_isbn.empty:
+                    quantidade_disponivel = \
+                    df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'qt_disponivel'].values[0]
+            elif not entrada_isbn and entrada_aluno:
+                entrada_aluno = entrada_aluno.lower()
+                check_isbn = df_reserva.loc[(df_reserva['nome_aluno'].str.lower().str.contains(entrada_aluno))].reset_index(drop=True)
+
+            if not entrada_isbn and not entrada_aluno:
+                st.write('Preencha os campos solicitados!')
+
+            elif not check_isbn.empty:
+                # Exibir os detalhes dos livros lado a lado
+                columns = st.columns(len(check_isbn))
+
+                for index, row in check_isbn.iterrows():
+                    isbn = row['isbn']
+                    titulo = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'titulo'].values[0]
+                    capa_url = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'capa'].values[0]
+                    nome_aluno = row['nome_aluno']
+                    data_reserva = row['data_reserva']
+
+                    try:
+                        # Baixar a imagem do URL e redimensioná-la
+                        response = requests.get(capa_url)
+                        if response.status_code == 200:
+                            capa_bytes = BytesIO(response.content)
+                            capa = Image.open(capa_bytes)
+                            image_width = 150  # Defina a largura desejada para as imagens
+                            image_height = 200  # Defina a altura desejada para as imagens
+                            capa = capa.resize((image_width, image_height))
+
+                            # Exibir a imagem redimensionada com a marca "X" e texto, se aplicável
+                            with columns[index]:
+                                html_code = f"""
+                                <div style="margin-bottom: 0px;">ISBN: {isbn}</div>
+                                <div style="margin-bottom: 0px;">Aluno: {nome_aluno}</div>
+                                <div>Data da reserva: {data_reserva}</div>
+                                """
+
+                                st.markdown(html_code, unsafe_allow_html=True)
+
+                                st.image(capa, caption=titulo, use_column_width=False)
+
+                    except Exception as e:
+                        st.error(f"Erro ao carregar a imagem: {e}")
+
+                if len(check_isbn) == 1:
+                    if st.button('Fazer devolução'):
+                        try:
+                            data_devolucao = datetime.datetime.now().strftime("%d-%m-%Y")
+
+                            colunas = '(isbn, nome_aluno, data_devolucao)'
+                            valores = f"('{check_isbn['isbn'].values[0]}', '{check_isbn['nome_aluno'].values[0]}', '{data_devolucao}')"
+                            conector_db.insert_data(conexao, 'devolucao_livros', colunas, valores)
+
+                            colunas = ['isbn', 'nome_aluno']
+                            valores = [check_isbn['isbn'].values[0], check_isbn['nome_aluno'].values[0]]
+                            conector_db.drop_data(conexao, 'reserva_livros', colunas, valores)
+
+                            st.success(f'Devolução realizada com sucesso!')
+
+                            conector_db.update_data(conexao,
+                                                    'catalogo_livros',
+                                                    'qt_disponivel',
+                                                    'isbn',
+                                                    quantidade_disponivel + 1,
+                                                    check_isbn['isbn'].values[0])
+                        except Exception as e:
+                            st.error(f"Erro ao fazer a devolução: {e}")
+                elif len(check_isbn) > 1 and not entrada_isbn:
+                    op_devolucao = st.selectbox('Escolha uma opção: ', ['Devolver um livro', 'Devolver todos'])
+
+                    if op_devolucao == 'Devolver um livro':
+
+                        isbn = st.text_input('Digite o ISBN do livro:')
+
+                        if st.button('Fazer devolução'):
+                            try:
+                                data_devolucao = datetime.datetime.now().strftime("%d-%m-%Y")
+
+                                colunas = '(isbn, nome_aluno, data_devolucao)'
+                                valores = f"('{isbn}', '{check_isbn['nome_aluno'].values[0]}', '{data_devolucao}')"
+                                conector_db.insert_data(conexao, 'devolucao_livros', colunas, valores)
+
+                                colunas = ['isbn', 'nome_aluno']
+                                valores = [isbn, check_isbn['nome_aluno'].values[0]]
+                                conector_db.drop_data(conexao, 'reserva_livros', colunas, valores)
+
+                                st.success(f'Devolução realizada com sucesso!')
+
+                                quantidade_disponivel = \
+                                df_catalogo.loc[df_catalogo['isbn'] == isbn, 'qt_disponivel'].values[0]
+
+                                conector_db.update_data(conexao,
+                                                        'catalogo_livros',
+                                                        'qt_disponivel',
+                                                        'isbn',
+                                                        quantidade_disponivel + 1,
+                                                        check_isbn['isbn'].values[0])
+                            except Exception as e:
+                                st.error(f"Erro ao fazer a devolução: {e}")
+                    else:
+                        if st.button('Fazer devolução de todos os livros'):
+                            try:
+                                data_devolucao = datetime.datetime.now().strftime("%d-%m-%Y")
+
+                                colunas = '(isbn, nome_aluno, data_devolucao)'
+                                for index, row in check_isbn.iterrows():
+                                    isbn = row['isbn']
+                                    nome_aluno = row['nome_aluno']
+
+                                    valores = f"('{isbn}', '{nome_aluno}', '{data_devolucao}')"
+                                    conector_db.insert_data(conexao, 'devolucao_livros', colunas, valores)
+
+                                    colunas = ['isbn', 'nome_aluno']
+                                    valores = [check_isbn['isbn'].values[0], check_isbn['nome_aluno'].values[0]]
+                                    conector_db.drop_data(conexao, 'reserva_livros', colunas, valores)
+
+                                    st.success(f'Devolução realizada com sucesso!')
+
+                                    quantidade_disponivel = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'qt_disponivel'].values[0]
+                                    conector_db.update_data(conexao,
+                                                            'catalogo_livros',
+                                                            'qt_disponivel',
+                                                            'isbn',
+                                                            quantidade_disponivel + 1,
+                                                            check_isbn['isbn'].values[0])
+                            except Exception as e:
+                                st.error(f"Erro ao fazer a devolução: {e}")
+        else:
             st.write('Preencha os campos solicitados!')
+    except Exception as e:
+        st.error(f"Erro: {e}")
 
-        elif not check_isbn.empty:
-            # Exibir os detalhes dos livros lado a lado
-            columns = st.columns(len(check_isbn))
+elif op == 'Atualizar livro':
+    st.header("Atualizar Livro")
+    df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
 
-            for index, row in check_isbn.iterrows():
-                isbn = row['isbn']
-                titulo = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'titulo'].values[0]
-                capa_url = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'capa'].values[0]
-                nome_aluno = row['nome_aluno']
-                data_reserva = row['data_reserva']
+    entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
 
-                try:
-                    # Baixar a imagem do URL e redimensioná-la
+    try:
+        check_isbn = df_catalogo.loc[
+            (df_catalogo['isbn'].str.contains(entrada_isbn_titulo))
+            | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo))]
+
+        if entrada_isbn_titulo != '' and len(check_isbn) == 1:
+
+            isbn_old = check_isbn['isbn'].values[0]
+            titulo_old = check_isbn['titulo'].values[0]
+            qt_disponivel_old = check_isbn['qt_disponivel'].values[0]
+
+            form_info = st.form('Informações do livro')
+
+            with form_info:
+                st.markdown(
+                    f'<h1 style="text-align:center;">Informações do livro</h1>',
+                    unsafe_allow_html=True
+                )
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    isbn_new = st.text_input('Digite o novo ISBN do livro:',
+                                             placeholder=f'ISBN antigo: {isbn_old}', value=isbn_old)
+                    titulo_new = st.text_input('Digite o novo título do livro:',
+                                               placeholder=f'Título antigo: {titulo_old}', value=titulo_old)
+
+                    # capa_new = obj.atualizar_capa(capa_op, check_isbn)
+                    # capa_new = capa_url
+                    qt_disponivel_new = st.text_input('Atualize a quantidade disponível:',
+                                               placeholder=f'Quantidade antiga: {qt_disponivel_old}', value=qt_disponivel_old)
+
+                    st.text("")  # Adiciona um espaço em branco para ajustar a altura
+
+                with col2:
+                    capa_url = check_isbn['capa'].values[0]
+                    image_width = 250
+                    image_height = 335
+
                     response = requests.get(capa_url)
                     if response.status_code == 200:
                         capa_bytes = BytesIO(response.content)
                         capa = Image.open(capa_bytes)
-                        image_width = 150  # Defina a largura desejada para as imagens
-                        image_height = 200  # Defina a altura desejada para as imagens
+
                         capa = capa.resize((image_width, image_height))
+                        st.image(capa)
+                        # st.image(capa, width=image_width, height=image_height)
 
-                        # Exibir a imagem redimensionada com a marca "X" e texto, se aplicável
-                        with columns[index]:
-                            html_code = f"""
-                            <div style="margin-bottom: 0px;">ISBN: {isbn}</div>
-                            <div style="margin-bottom: 0px;">Aluno: {nome_aluno}</div>
-                            <div>Data da reserva: {data_reserva}</div>
-                            """
+                if form_info.form_submit_button('Confirmar atualização'):
 
-                            st.markdown(html_code, unsafe_allow_html=True)
+                    colunas = ['isbn']
+                    valores = [isbn_old]
+                    conector_db.drop_data(conexao, 'catalogo_livros', colunas, valores)
 
-                            st.image(capa, caption=titulo, use_column_width=False)
+                    colunas = '(isbn, titulo, capa, qt_disponivel)'
+                    valores = f"('{isbn_new}', '{titulo_new}', '{capa_url}', {qt_disponivel_new})"
+                    conector_db.insert_data(conexao, 'catalogo_livros', colunas, valores)
+                    form_info.success(f'Livro atualizado com sucesso!')
 
-                except Exception as e:
-                    st.error(f"Erro ao carregar a imagem: {e}")
+                    # st.experimental_rerun()
 
-            if len(check_isbn) == 1:
-                if st.button('Fazer devolução'):
-                    try:
-                        data_devolucao = datetime.datetime.now().strftime("%d-%m-%Y")
-
-                        colunas = '(isbn, nome_aluno, data_devolucao)'
-                        valores = f"('{check_isbn['isbn'].values[0]}', '{check_isbn['nome_aluno'].values[0]}', '{data_devolucao}')"
-                        conector_db.insert_data(conexao, 'devolucao_livros', colunas, valores)
-
-                        colunas = ['isbn', 'nome_aluno']
-                        valores = [check_isbn['isbn'].values[0], check_isbn['nome_aluno'].values[0]]
-                        conector_db.drop_data(conexao, 'reserva_livros', colunas, valores)
-
-                        st.success(f'Devolução realizada com sucesso!')
-
-                        conector_db.update_data(conexao,
-                                                'catalogo_livros',
-                                                'qt_disponivel',
-                                                'isbn',
-                                                quantidade_disponivel + 1,
-                                                check_isbn['isbn'].values[0])
-                    except Exception as e:
-                        st.error(f"Erro ao fazer a devolução: {e}")
+        elif entrada_isbn_titulo != '' and len(check_isbn) == 0:
+            st.success('Livro não encontrado. Tente novamente!')
+        else:
+            st.success(f'Preencha os campos solicitados!')
 
     except Exception as e:
-        st.error(f"Erro: {e}")
+        st.error(f"Ocorreu um erro: {str(e)}")
+
+elif op == 'Remover livro':
+    st.header("Remover Livro")
+    df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
+
+    entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
+
+    try:
+        check_isbn = df_catalogo.loc[
+            (df_catalogo['isbn'].str.contains(entrada_isbn_titulo))
+            | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo))]
+
+        if entrada_isbn_titulo != '' and len(check_isbn) == 1:
+
+            isbn_old = check_isbn['isbn'].values[0]
+            titulo_old = check_isbn['titulo'].values[0]
+            qt_disponivel_old = check_isbn['qt_disponivel'].values[0]
+
+            form_info = st.form('Informações do livro')
+
+            with form_info:
+                st.markdown(
+                    f'<h1 style="text-align:center;">Informações do livro</h1>',
+                    unsafe_allow_html=True
+                )
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.write(f'ISBN: {isbn_old}')
+                    st.write(f'Título: {titulo_old}')
+                    st.write(f'Quantidade disponível: {qt_disponivel_old}')
+                    st.text("")  # Adiciona um espaço em branco para ajustar a altura
+
+                with col2:
+                    capa_url = check_isbn['capa'].values[0]
+                    image_width = 250
+                    image_height = 335
+
+                    response = requests.get(capa_url)
+                    if response.status_code == 200:
+                        capa_bytes = BytesIO(response.content)
+                        capa = Image.open(capa_bytes)
+
+                        capa = capa.resize((image_width, image_height))
+                        st.image(capa)
 
 
+                if form_info.form_submit_button('Confirmar remoção'):
+
+                    colunas = ['isbn']
+                    valores = [isbn_old]
+                    conector_db.drop_data(conexao, 'catalogo_livros', colunas, valores)
+
+                    # st.experimental_rerun()
+
+        elif entrada_isbn_titulo != '' and len(check_isbn) == 0:
+            st.success('Livro não encontrado. Tente novamente!')
+        else:
+            st.success(f'Preencha os campos solicitados!')
+
+    except Exception as e:
+        st.error(f"Ocorreu um erro: {str(e)}")
