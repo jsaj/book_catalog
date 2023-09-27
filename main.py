@@ -78,8 +78,11 @@ elif op == 'Catálogo':
             st.write(f"Ocorreu um erro: {str(e)}")
 
     else:
-        st.markdown("---")  # Adiciona uma linha de separação
-        st.subheader('Catálogo de livros')
+        n_livros = len(df_catalogo_livros['isbn'].drop_duplicates())
+        st.markdown(
+            f'<h2 style="text-align:center;">Catálogo de livros: {n_livros} livros cadastrados</h1>',
+            unsafe_allow_html=True
+        )
 
         # Definir a quantidade de itens por página
         itens_por_pagina = 15
