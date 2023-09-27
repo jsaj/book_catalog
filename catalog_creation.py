@@ -8,7 +8,6 @@ import io
 from io import BytesIO
 import streamlit as st
 
-from streamlit_webrtc import webrtc_streamer
 class catalog_creation():
     # def identificar_codigo_barra(self, path):
     #
