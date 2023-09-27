@@ -1,5 +1,5 @@
 from PIL import Image
-from pyzbar.pyzbar import decode
+# from pyzbar.pyzbar import decode
 import streamlit as st
 import cv2
 import pandas as pd
@@ -12,26 +12,26 @@ import mysql.connector as mysql
 from io import BytesIO
 
 class catalog_creation():
-    def identificar_codigo_barra(self, path):
-
-        # Carregue a imagem do print ou capture-a usando uma biblioteca como o OpenCV
-        # imagem = cv2.imread(path)  # Substitua 'print.png' pelo caminho da sua imagem de print
-        imagem = Image.open(path)
-
-        # Converta a imagem para tons de cinza para facilitar o processamento
-        # imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
-
-        # Use a função decode da biblioteca pyzbar para decodificar os códigos de barras
-        resultados = decode(imagem)
-
-        # Verifique se algum código de barras foi encontrado
-        if resultados:
-            for resultado in resultados:
-                codigo = resultado.data.decode('utf-8')
-                return codigo
-        else:
-            print('Nenhum código de barras encontrado na imagem do print.')
-            return '0'
+    # def identificar_codigo_barra(self, path):
+    #
+    #     # Carregue a imagem do print ou capture-a usando uma biblioteca como o OpenCV
+    #     # imagem = cv2.imread(path)  # Substitua 'print.png' pelo caminho da sua imagem de print
+    #     imagem = Image.open(path)
+    #
+    #     # Converta a imagem para tons de cinza para facilitar o processamento
+    #     # imagem = cv2.cvtColor(imagem, cv2.COLOR_BGR2GRAY)
+    #
+    #     # Use a função decode da biblioteca pyzbar para decodificar os códigos de barras
+    #     resultados = decode(imagem)
+    #
+    #     # Verifique se algum código de barras foi encontrado
+    #     if resultados:
+    #         for resultado in resultados:
+    #             codigo = resultado.data.decode('utf-8')
+    #             return codigo
+    #     else:
+    #         print('Nenhum código de barras encontrado na imagem do print.')
+    #         return '0'
 
     def buscar_titulo_e_capa_por_isbn(self, isbn):
         # URL da API do Google Books
