@@ -5,10 +5,9 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 
 from io import BytesIO
-from streamlit_modal import Modal
 
 from catalog_creation import catalog_creation
-from streamlit_image_select import image_select
+
 from conexao_mysql import conexao_mysql
 import datetime
 
