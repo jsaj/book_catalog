@@ -57,16 +57,16 @@ if op == "Cadastrar livro":
 
 elif op == 'Catálogo':
     # Carregar o catálogo de livros
-    df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
-    df_catalogo = df_catalogo.sort_values(by='titulo', ascending=True)
+    df_catalogo_livros = conector_db.read_data(conexao, 'catalogo_livros')
+    df_catalogo_livros = df_catalogo_livros.sort_values(by='titulo', ascending=True)
 
     entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
 
     if st.button("Consultar"):
         try:
-            check_isbn = df_catalogo.loc[
-                (df_catalogo['isbn'].astype(str).str.contains(entrada_isbn_titulo, case=False))
-                | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo, case=False))].reset_index(drop=True)
+            check_isbn = df_catalogo_livros.loc[
+                (df_catalogo_livros['isbn'].astype(str).str.contains(entrada_isbn_titulo, case=False))
+                | (df_catalogo_livros['titulo'].str.contains(entrada_isbn_titulo, case=False))].reset_index(drop=True)
 
             check_isbn = check_isbn.sort_values(by='titulo', ascending=True)
 
@@ -80,6 +80,22 @@ elif op == 'Catálogo':
     else:
         st.markdown("---")  # Adiciona uma linha de separação
         st.subheader('Catálogo de livros')
+
+        # Definir a quantidade de itens por página
+        itens_por_pagina = 15
+
+        # Obter o número total de páginas
+        num_paginas = len(df_catalogo_livros) // itens_por_pagina + 1
+
+        # Permitir que o usuário selecione a página
+        pagina_selecionada = st.selectbox('Selecione a página:', list(range(1, num_paginas + 1)))
+
+        # Calcular o índice de início e fim para a página selecionada
+        inicio = (pagina_selecionada - 1) * itens_por_pagina
+        fim = pagina_selecionada * itens_por_pagina
+
+        # Exibir os itens da página selecionada
+        df_catalogo = df_catalogo_livros.iloc[inicio:fim]
 
         num_columns = 3  # Defina o número de colunas desejado
         num_books = len(df_catalogo)
