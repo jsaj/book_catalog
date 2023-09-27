@@ -7,9 +7,6 @@ import pandas as pd
 
 class conexao_mysql():
 
-    def __init__(self):
-        self.conexao = self.conectar_banco()
-
     def conectar_banco(self):
         # Configurações de conexão
         host = 'aws.connect.psdb.cloud'
@@ -17,20 +14,14 @@ class conexao_mysql():
         password = 'pscale_pw_rfQ7Kl5nlC2n5zY8pWghHvtlQHAK2RY2QGRApFwWprF'
         database = 'streamlit-study-db'
 
-        try:
-            # Tente estabelecer a conexão
-            conexao = mysql.connect(
-                host=host,
-                user=user,
-                password=password,
-                database=database
-            )
+        # Tente estabelecer a conexão
+        conexao = mysql.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database
+        )
 
-            if conexao.is_connected():
-                print("Conexão bem-sucedida ao MySQL!")
-
-        except mysql.Error as e:
-            print(f"Erro de conexão ao MySQL: {e}")
         return conexao
 
     def insert_data(self, connection, tabela, colunas, valores):
