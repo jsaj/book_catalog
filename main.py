@@ -30,47 +30,58 @@ if op == "Cadastrar livro":
 
     isbn = st.text_input('Digite o ISBN do livro: ')
     if len(isbn) > 1 and len(isbn) <= 13:
-        isbn_10, titulo, authors = obj.get_book_info_from_google_books(isbn)
-        if isbn_10 == None and titulo == None and authors == None:
-            titulo = st.text_input('Informe o título do livro: ')
-            capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
-        else:
-            capa_url = obj.find_url_book(isbn_10, titulo, authors)
-            if capa_url == None and titulo != None:
-                capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
-            elif titulo == None:
+        try:
+            titulo, capa_url = obj.find_url_book(isbn)
+            if not titulo:
                 titulo = st.text_input('Informe o título do livro: ')
 
-        qtd_disponivel = st.text_input('Informe a quantidade disponível: ')
+            # isbn_10, titulo, authors = obj.get_book_info_from_google_books(isbn)
+            # if isbn_10 == None and titulo == None and authors == None:
+            #     titulo = st.text_input('Informe o título do livro: ')
+            #     capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
+            # else:
+            #     # capa_url = obj.find_url_book(isbn_10, titulo, authors)
+            #     if capa_url == None and titulo != None:
+            #         capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
+            #     elif titulo == None:
+            #         titulo = st.text_input('Informe o título do livro: ')
 
-        if titulo != None and titulo != ' ':
-            st.write('Título: ', titulo)
-        image_bytes = requests.get(capa_url).content
-        st.image(BytesIO(image_bytes), width=150)
+            qtd_disponivel = st.text_input('Informe a quantidade disponível: ')
 
-        if st.button("Cadastrar"):
-            colunas = '(isbn, titulo, capa,quantidade_disponivel, reservado, data_reserva, nome_aluno, data_devolucao)'
-            valores = f"('{isbn}', '{titulo}', '{capa_url}', {qtd_disponivel}, 'NAO', '', '', '')"
-            conector_db.insert_data(conexao, 'catalog_book', colunas, valores)
-            # obj.registrar_livro(isbn, titulo, capa_url)
-            st.success("Livro cadastrado com sucesso!")
+            if titulo and titulo.strip():
+                st.write('Título: ', titulo)
+            image_bytes = requests.get(capa_url).content
+            st.image(BytesIO(image_bytes), width=150)
+
+            if st.button("Cadastrar"):
+                colunas = '(isbn, titulo, capa,quantidade_disponivel)'
+                valores = f"('{isbn}', '{titulo}', '{capa_url}', '{qtd_disponivel}')"
+                conector_db.insert_data(conexao, 'catalog_book', colunas, valores)
+
+                st.success("Livro cadastrado com sucesso!")
+        except Exception as e:
+            st.write(f"Ocorreu um erro: {str(e)}")
     else:
-        st.write('ISBN inválido. Tente novamente!')
+        st.write('Preencha os campos solicitados!')
 
 elif op == 'Catálogo':
+    # Carregar o catálogo de livros
     df_catalogo = conector_db.read_data(conexao, 'catalog_book')
-    st.write(df_catalogo)
 
     entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
 
     if st.button("Consultar"):
-        check_isbn = df_catalogo.loc[
-            (df_catalogo['isbn'].str.contains(entrada_isbn_titulo))
-            | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo))].reset_index(drop=True)
-        if len(check_isbn) > 0:
-            obj.consultar_livro(check_isbn)
-        else:
-            st.write('Livro não encontrado!')
+        try:
+            check_isbn = df_catalogo.loc[
+                (df_catalogo['isbn'].astype(str).str.contains(entrada_isbn_titulo, case=False))
+                | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo, case=False))].reset_index(drop=True)
+
+            if not check_isbn.empty:
+                obj.consultar_livro(check_isbn)
+            else:
+                st.write('Livro não encontrado!')
+        except Exception as e:
+            st.write(f"Ocorreu um erro: {str(e)}")
 
     else:
         st.markdown("---")  # Adiciona uma linha de separação
@@ -93,9 +104,11 @@ elif op == 'Catálogo':
                     capa_url = df_catalogo.iloc[index]['capa']
                     quantidade_disponivel = df_catalogo.iloc[index]['quantidade_disponivel']
 
-                    # Baixar a imagem do URL e redimensioná-la
-                    response = requests.get(capa_url)
-                    if response.status_code == 200:
+                    try:
+                        # Baixar a imagem do URL e redimensioná-la
+                        response = requests.get(capa_url)
+                        response.raise_for_status()
+
                         capa_bytes = BytesIO(response.content)
                         capa = Image.open(capa_bytes)
                         capa = capa.resize((image_width, image_height))
@@ -127,216 +140,193 @@ elif op == 'Catálogo':
                             # Adicionar o texto no centro da caixa
                             draw.text((text_x, text_y), text, fill="black", font=font)
 
+
                         # Exibir a imagem redimensionada com a marca "X" e texto, se aplicável
-                        columns[col].write(f"<p style='font-size: 14px;'>ISBN: {isbn}</p>", unsafe_allow_html=True)
+                        columns[col].write(f"<p style='font-size: 14px; margin-bottom: 0px;'>ISBN: {isbn}</p>", unsafe_allow_html=True)
+                        qt_disponivel = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'quantidade_disponivel'].values[0]
+                        # if qt_disponivel > 1:
+                        #     columns[col].write(f"<p style='font-size: 14px;'>{qt_disponivel} Exemplares</p>", unsafe_allow_html=True)
+                        # elif qt_disponivel == 1:
+                        #     columns[col].write(f"<p style='font-size: 14px;'>{qt_disponivel} Exemplar</p>",
+                        #                        unsafe_allow_html=True)
+                        # else:
+                        #     columns[col].write(f"<p style='font-size: 14px;'>Indisponível</p>",
+                        #                        unsafe_allow_html=True)
                         columns[col].image(capa, caption=titulo, use_column_width=True)
+
+                    except Exception as e:
+                        st.write(f"Ocorreu um erro ao processar a imagem: {str(e)}")
+
 elif op == 'Reservar livro':
     st.header("Reservar Livro")
     df_catalogo = conector_db.read_data(conexao, 'catalog_book')
-    st.write(df_catalogo)
 
     entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
 
-    check_isbn = df_catalogo.loc[
-        (df_catalogo['isbn'].str.contains(entrada_isbn_titulo))
-        | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo))]
-    # Botão para abrir o modal
-    if st.button("Consultar"):
-        st.markdown(
-            """
-            <style>
-            /* Estilo para esconder o modal inicialmente */
-            .modal {
-                display: none;
-                background-color: rgba(0,0,0,0.0);
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 999;
-            }
+    try:
+        check_isbn = df_catalogo.loc[
+            (df_catalogo['isbn'].str.contains(entrada_isbn_titulo))
+            | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo))]
 
-            /* Estilo para o conteúdo do modal */
-            .modal-content {
-                background-color: #fefefe;
-                color: black; /* Cor do texto */
-                border: 1px solid #888;
-                width: 40%; /* Largura do modal */
-                height: 50%; /* Altura do modal */
-                box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-                text-align: center;
-                position: relative;
-            }
-            </style>
-            <div class="modal" id="myModal">
-                <div class="modal-content">
-                    <span style="position: absolute; top: 10px; right: 20px; font-size: 24px; cursor: pointer;" onclick="closeModal()">&times;</span>
-                    <h2>Informações da Reserva</h2>
-                    <p>ISBN: 123456789</p>
-                    <p>Título: Livro XYZ</p>
-                    <p>Nome do Aluno: [Digite o nome aqui]</p>
-                    <button onclick="confirmReserva()">Confirmar Reserva</button>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        # # Botão para abrir o modal
-        # if st.button("Reservar"):
-        #     st.markdown(
-        #         """
-        #         <div style="background-color: rgba(0,0,0,0.7); position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 999;">
-        #             <div style="background-color: #fefefe; padding: 20px; border: 1px solid #888; width: 50%; box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2); text-align: center; position: relative; color: black;">
-        #                 <span style="position: absolute; top: 10px; right: 20px; font-size: 24px; cursor: pointer;" onclick="closeModal()">&times;</span>
-        #                 <h2 style="color: black;">Informações da Reserva</h2>
-        #                 <p style="color: black;"> <b>ISBN:</b> 123456789</p>
-        #                 <p style="color: black;">Título: Livro XYZ</p>
-        #                 <p style="color: black;">Nome do Aluno: <span style="color: black;">[Digite o nome aqui]</span></p>
-        #                 <button onclick="confirmReserva()">Confirmar Reserva</button>
-        #             </div>
-        #         </div>
-        #         <script>
-        #             // Função para fechar o modal
-        #             function closeModal() {
-        #                 var modal = document.querySelector(".modal");
-        #                 modal.style.display = "none";
-        #             }
-        #
-        #             // Função para confirmar a reserva
-        #             function confirmReserva() {
-        #                 alert("Reserva confirmada!");
-        #                 closeModal();
-        #             }
-        #         </script>
-        #         """
-        #         , unsafe_allow_html=True
-        #     )
-    # # Botão para abrir o modal
-    # if st.button("Reservar"):
-    #     st.markdown(
-    #         """
-    #         <script>
-    #             openModal(); // Abre o modal ao clicar no botão
-    #         </script>
-    #         """
-    #         , unsafe_allow_html=True
-    #     )
+        if entrada_isbn_titulo != '' and len(check_isbn) > 0:
+            qt_disponivel = check_isbn['quantidade_disponivel'].values[0]
 
-# elif op == 'Reservar livro':
-#     st.header("Reservar Livro")
-#     df_catalogo = conector_db.read_data(conexao, 'catalog_book')
-#     st.write(df_catalogo)
-#
-#     entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
-#
-#     check_isbn = df_catalogo.loc[
-#         (df_catalogo['isbn'].str.contains(entrada_isbn_titulo))
-#         | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo))]
-#
-#     open_modal = st.button("Reservar livro")
-#
-#     if open_modal and len(check_isbn) > 0 and entrada_isbn_titulo != '':
-#         qt_disponivel = check_isbn['quantidade_disponivel'].values[0]
-#         st.write(qt_disponivel)
-#         # if qt_disponivel => 1:
-#         #     st.write(f'Há {qt_disponivel} exemplares deste livro disponíveis')
-#
-#         modal = Modal(key='exemplo', title='')
-#         modal.open()
-#
-#         with modal.container():
-#             # Exibir a imagem do livro à direita das informações
-#             st.write("<style>div.Modal div[role='dialog'] { background-color: white; }</style>",
-#                      unsafe_allow_html=True)
-#
-#             col1, col2 = st.columns([1, 2])
-#             col1.image(check_isbn.iloc[0]['capa'], use_column_width='auto')
-#             col2.write("<h2 style='color: black;'>Informações da reserva</h2>", unsafe_allow_html=True)
-#             col2.write(f"<span style='color: black;'><b>ISBN:</b> {check_isbn.iloc[0]['isbn']}</span>",
-#                        unsafe_allow_html=True)
-#             col2.write(f"<span style='color: black;'><b>Título:</b> {check_isbn.iloc[0]['titulo']}</span>",
-#                        unsafe_allow_html=True)
-#             col2.write("<span style='color: black; margin-top: -20px'><b>Preencha com o nome do aluno:</b></span>",
-#                        unsafe_allow_html=True)
-#             nome_aluno = col2.text_input("")
-#
-#             if col2.button('Confirmar Reserva'):
-#                 isbn = check_isbn['isbn'].drop_duplicates().values[0]
-#                 data_reserva = datetime.datetime.now().strftime("%d-%m-%Y")
-#                 colunas = '(isbn, nome_aluno, data_reserva)'
-#                 valores = f"('{isbn}', '{nome_aluno}', '{data_reserva}')"
-#
-#                 conector_db.insert_data(conexao, 'reserva_livro', colunas, valores)
-#
-#                 tabela = 'catalog_book'
-#                 coluna_alterar = 'quantidade_disponivel'
-#                 coluna_condicao = 'isbn'
-#                 valor_condicao = isbn
-#
-#                 valor_alterar = qt_disponivel - 1
-#
-#                 conector_db.update_data(conexao, tabela, coluna_alterar, coluna_condicao, valor_alterar)
-            #     col2.write(f"<span style='color: black;'>Reserva confirmada para {nome_aluno}</span>",
-            #                unsafe_allow_html=True)
-            #     modal.close()
-            #
-            #     # modal.close()
-            # obj.consultar_livro(check_isbn)
+            if qt_disponivel >= 1:
+                if qt_disponivel > 1:
+                    st.success(f'Há {qt_disponivel} exemplares deste livro disponíveis para reserva.')
+                else:
+                    st.success(f'Há {qt_disponivel} exemplar deste livro disponível para reserva.')
 
-    #
-    #     else:
-    #         st.write(f'Não há exemplar deste livro disponível')
-    #
-    #     st.markdown("---")  # Adiciona uma linha de separação
-    #
-    #
-    #
-    # elif open_modal and entrada_isbn_titulo == '':
-    #     st.write('Valor informado não aceito. Tente novamente!')
-    #
-    # elif open_modal and len(check_isbn) < 1:
-    #     st.write('Livro não encontrato ou não está disponível para reserva. Tente novamente!')
+                form_info = st.form('Informação da reserva')
 
-# elif 'Devolver livro':
-#     st.header("Devolver Livro")
-#
-#     isbn = st.text_input('Digite o ISBN do livro: ', value='')
-#     nome_aluno = st.text_input('Digite o nome do aluno: ', value='')
-#
-#     dataset = conector_db.read_data(conexao, 'reserva_livro')
-#
-#     check_isbn = dataset.loc[
-#         (dataset['isbn'].str.contains(isbn))
-#         | (dataset['nome_aluno'].str.contains(nome_aluno))]
-#
-#     open_modal = st.button("Verificar reserva")
-#     st.markdown("---")  # Adiciona uma linha de separação
-#
-#     st.table(check_isbn)
-#
-#     if open_modal and len(check_isbn) > 0:
-#         st.write('modal')
-#         modal = Modal(key='exemplo', title='')
-#         modal.open()
-#
-#         if modal.is_open():
-#             with modal.container():
-#                 # Exibir a imagem do livro à direita das informações
-#                 st.write("<style>div.Modal div[role='dialog'] { background-color: white; }</style>",
-#                          unsafe_allow_html=True)
-#
-#                 col1, col2 = st.columns([1, 2])
-#                 # col1.image(check_isbn.iloc[0]['capa'], use_column_width='auto')
-#                 col2.write("<h2 style='color: black;'>Informações da reserva</h2>", unsafe_allow_html=True)
-#                 col2.write(f"<span style='color: black;'><b>ISBN:</b> {check_isbn.iloc[0]['isbn']}</span>",
-#                            unsafe_allow_html=True)
-#                 col2.write(
-#                     f"<span style='color: black;'><b>Nome do aluno:</b> {check_isbn.iloc[0]['nome_aluno']}</span>",
-#                     unsafe_allow_html=True)
-#     elif open_modal and len(isbn) != 13:
-#         st.write('Reserva não encontrada. Tente novamente!')
-#
+                with form_info:
+                    st.markdown(
+                        f'<h1 style="text-align:center;">Informação da reserva</h1>',
+                        unsafe_allow_html=True
+                    )
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.write(f"ISBN: {check_isbn['isbn'].values[0]}")
+                        st.write(f"Título: {check_isbn['titulo'].values[0]}")
+                        nome_aluno = st.text_input('Digite o nome do aluno:', value="")
+                        st.text("")  # Adiciona um espaço em branco para ajustar a altura
+
+                    with col2:
+                        capa_url = check_isbn['capa'].values[0]
+                        image_width = 200
+                        image_height = 200
+
+                        response = requests.get(capa_url)
+                        if response.status_code == 200:
+                            capa_bytes = BytesIO(response.content)
+                            capa = Image.open(capa_bytes)
+                            capa = capa.resize((image_width, image_height))
+                            st.image(capa)
+
+                    if form_info.form_submit_button('Confirmar reserva'):
+                        data_reserva = datetime.datetime.now().strftime("%d-%m-%Y")
+
+                        colunas = '(isbn, nome_aluno, data_reserva)'
+                        valores = f"('{check_isbn['isbn'].values[0]}', '{nome_aluno}', '{data_reserva}')"
+                        conector_db.insert_data(conexao, 'reserva_livro', colunas, valores)
+                        form_info.success(f'Livro reservado com sucesso!')
+
+                        conector_db.update_data(conexao,
+                                                'catalog_book',
+                                                'quantidade_disponivel',
+                                                'isbn',
+                                                qt_disponivel - 1,
+                                                check_isbn['isbn'].values[0])
+                        st.experimental_rerun()
+
+            else:
+                st.success(f'Não há exemplares deste livro disponíveis para reserva.')
+
+        else:
+            st.write('Preencha os campos solicitados!')
+
+    except Exception as e:
+        st.error(f"Ocorreu um erro: {str(e)}")
+
+elif 'Devolver livro':
+
+    try:
+        st.header("Reservar Livro")
+
+        df_reserva = conector_db.read_data(conexao, 'reserva_livro')
+        df_catalogo = conector_db.read_data(conexao, 'catalog_book')
+
+        entrada_isbn = st.text_input('Digite o ISBN do livro: ')
+        entrada_aluno = st.text_input('Digite o nome do aluno: ')
+
+        quantidade_disponivel = 0
+        check_isbn = pd.DataFrame()
+        if entrada_isbn:
+            entrada_isbn = entrada_isbn.lower()
+
+        if entrada_isbn and not entrada_aluno:
+            check_isbn = df_reserva.loc[
+                df_reserva['isbn'].str.lower().str.contains(entrada_isbn)].reset_index(drop=True)
+
+            if not check_isbn.empty:
+                quantidade_disponivel = \
+                df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'quantidade_disponivel'].values[0]
+
+        elif entrada_isbn and entrada_aluno:
+            entrada_aluno = entrada_aluno.lower()
+            check_isbn = df_reserva.loc[
+                (df_reserva['isbn'].str.lower().str.contains(entrada_isbn))
+                & (df_reserva['nome_aluno'].str.lower().str.contains(entrada_aluno))].reset_index(drop=True)
+
+            if not check_isbn.empty:
+                quantidade_disponivel = \
+                df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'quantidade_disponivel'].values[0]
+
+        if not entrada_isbn and not entrada_aluno:
+            st.write('Preencha os campos solicitados!')
+
+        elif not check_isbn.empty:
+            # Exibir os detalhes dos livros lado a lado
+            columns = st.columns(len(check_isbn))
+
+            for index, row in check_isbn.iterrows():
+                isbn = row['isbn']
+                titulo = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'titulo'].values[0]
+                capa_url = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'capa'].values[0]
+                nome_aluno = row['nome_aluno']
+                data_reserva = row['data_reserva']
+
+                try:
+                    # Baixar a imagem do URL e redimensioná-la
+                    response = requests.get(capa_url)
+                    if response.status_code == 200:
+                        capa_bytes = BytesIO(response.content)
+                        capa = Image.open(capa_bytes)
+                        image_width = 150  # Defina a largura desejada para as imagens
+                        image_height = 200  # Defina a altura desejada para as imagens
+                        capa = capa.resize((image_width, image_height))
+
+                        # Exibir a imagem redimensionada com a marca "X" e texto, se aplicável
+                        with columns[index]:
+                            html_code = f"""
+                            <div style="margin-bottom: 0px;">ISBN: {isbn}</div>
+                            <div style="margin-bottom: 0px;">Aluno: {nome_aluno}</div>
+                            <div>Data da reserva: {data_reserva}</div>
+                            """
+
+                            st.markdown(html_code, unsafe_allow_html=True)
+
+                            st.image(capa, caption=titulo, use_column_width=False)
+
+                except Exception as e:
+                    st.error(f"Erro ao carregar a imagem: {e}")
+
+            if len(check_isbn) == 1:
+                if st.button('Fazer devolução'):
+                    try:
+                        data_devolucao = datetime.datetime.now().strftime("%d-%m-%Y")
+
+                        colunas = '(isbn, nome_aluno, data_devolucao)'
+                        valores = f"('{check_isbn['isbn'].values[0]}', '{check_isbn['nome_aluno'].values[0]}', '{data_devolucao}')"
+                        conector_db.insert_data(conexao, 'devolucao_livro', colunas, valores)
+
+                        colunas = ['isbn', 'nome_aluno']
+                        valores = [check_isbn['isbn'].values[0], check_isbn['nome_aluno'].values[0]]
+                        conector_db.drop_data(conexao, 'reserva_livro', colunas, valores)
+
+                        st.success(f'Devolução realizada com sucesso!')
+
+                        conector_db.update_data(conexao,
+                                                'catalog_book',
+                                                'quantidade_disponivel',
+                                                'isbn',
+                                                quantidade_disponivel + 1,
+                                                check_isbn['isbn'].values[0])
+                    except Exception as e:
+                        st.error(f"Erro ao fazer a devolução: {e}")
+
+    except Exception as e:
+        st.error(f"Erro: {e}")
+
+

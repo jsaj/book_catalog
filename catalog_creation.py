@@ -71,34 +71,74 @@ class catalog_creation():
             # Em caso de erro, use a URL pública do GitHub para uma imagem de capa padrão
             capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
             return f"Erro ao buscar título: {str(e)}", capa_url
-    def find_url_book(self, isbn_10, titulo, authors, max_attempts=10):
+    # def find_url_book(self, isbn_10, titulo, authors, max_attempts=10):
+    #
+    #     if isbn_10 != None:
+    #         if ' ' in titulo:
+    #             titulo = titulo.replace(' ', '-')
+    #         if ' ' in authors[0]:
+    #             authors = authors[0].replace(' ', '-')
+    #
+    #         url = "https://www.amazon.com.br/{}-{}/dp/{}".format(titulo, authors, isbn_10)
+    #
+    #         for _ in range(max_attempts):
+    #
+    #             response = requests.get(url)
+    #             soup = BeautifulSoup(response.text, "html.parser")
+    #
+    #             # Use uma expressão regular para encontrar o link
+    #             padrao = r'data-a-dynamic-image=\'{\"(https://[^"]+)\"'
+    #             correspondencias = re.search(padrao, str(soup))
+    #
+    #             # Verifique se houve correspondência e obtenha o primeiro link
+    #             if correspondencias:
+    #                 primeiro_link = correspondencias.group(1)
+    #                 return primeiro_link
+    #         #     else:
+    #         #         # st.write("Tentativa sem sucesso. Tentando novamente...")
+    #         #
+    #         # st.write(f"Nenhum link encontrado após {max_attempts} tentativas.")
+    #         return None
+    def find_url_book(self, isbn, max_attempts=10):
+        url = f'https://www.amazon.com.br/s?i=stripbooks&rh=p_66%3A{isbn}&s=relevanceexprank&Adv-Srch-Books-Submit.x=0&Adv-Srch-Books-Submit.y=0&unfiltered=1&ref=sr_adv_b'
 
-        if isbn_10 != None:
-            if ' ' in titulo:
-                titulo = titulo.replace(' ', '-')
-            if ' ' in authors[0]:
-                authors = authors[0].replace(' ', '-')
+        titulo, capa_url = None, None
+        for _ in range(max_attempts):
 
-            url = "https://www.amazon.com.br/{}-{}/dp/{}".format(titulo, authors, isbn_10)
+            response = requests.get(url)
 
-            for _ in range(max_attempts):
+            # Verifica se a solicitação foi bem-sucedida.
+            if response.status_code != 200:
+                print('Erro ao acessar a página da Amazon.')
+            else:
+                try:
+                    html_string = BeautifulSoup(response.text, 'html.parser')
 
-                response = requests.get(url)
-                soup = BeautifulSoup(response.text, "html.parser")
+                    # Encontre a tag 'img' dentro da tag 'div' com a classe específica
+                    img_tag = html_string.find('div', class_='a-section aok-relative s-image-fixed-height').find('img')
 
-                # Use uma expressão regular para encontrar o link
-                padrao = r'data-a-dynamic-image=\'{\"(https://[^"]+)\"'
-                correspondencias = re.search(padrao, str(soup))
+                    # Encontre o elemento HTML que contém o título do livro (pode variar na estrutura da página).
+                    titulo = img_tag['alt']
 
-                # Verifique se houve correspondência e obtenha o primeiro link
-                if correspondencias:
-                    primeiro_link = correspondencias.group(1)
-                    return primeiro_link
-            #     else:
-            #         # st.write("Tentativa sem sucesso. Tentando novamente...")
-            #
-            # st.write(f"Nenhum link encontrado após {max_attempts} tentativas.")
-            return None
+                    # Obtenha o valor do atributo 'src' da tag 'img'
+                    capa_url = img_tag['src']
+                except Exception as e:
+                    capa_url = None
+
+            if capa_url:
+                break
+
+
+        if titulo and capa_url:
+            return titulo, capa_url
+        elif titulo and not capa_url:
+            st.write('Capa do livro NÃO encontrada!')
+            capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
+            return titulo, capa_url
+        elif not titulo and not capa_url:
+            st.write('Título e capa do livro NÃO encontrados!')
+            capa_url = 'https://raw.githubusercontent.com/jsaj/book_catalog/master/images/sem-capa.jpg'
+            return None, capa_url
 
     def get_book_info_from_google_books(self, isbn):
         """
