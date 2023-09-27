@@ -7,8 +7,6 @@ from bs4 import BeautifulSoup
 import io
 from io import BytesIO
 import streamlit as st
-import av
-import numpy as np
 
 from streamlit_webrtc import webrtc_streamer
 class catalog_creation():
