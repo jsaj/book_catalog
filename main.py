@@ -7,11 +7,11 @@ from io import BytesIO
 
 from catalog_creation import catalog_creation
 
-from conexao_mysql import conexao_mysql
+from conexao_mysql import conexao_banco
 import datetime
 
 #conexão com o banco
-conector_db = conexao_mysql()
+conector_db = conexao_banco()
 conexao = conector_db.conectar_banco()
 
 # Defina o título do aplicativo
