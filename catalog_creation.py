@@ -1,14 +1,10 @@
 from PIL import Image
-# from pyzbar.pyzbar import decode
 import streamlit as st
-import cv2
 import pandas as pd
-import numpy as np
 import requests
 import json
 from bs4 import BeautifulSoup
-import io, re
-import mysql.connector as mysql
+import io
 from io import BytesIO
 
 class catalog_creation():
