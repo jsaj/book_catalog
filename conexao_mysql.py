@@ -10,8 +10,8 @@ class conexao_mysql():
     def conectar_banco(self):
         # Configurações de conexão
         host = 'aws.connect.psdb.cloud'
-        user = 'wwbc4k1zv19ro5q0apub'
-        password = 'pscale_pw_rfQ7Kl5nlC2n5zY8pWghHvtlQHAK2RY2QGRApFwWprF'
+        user = 'glijhrkku43houa3oewn'
+        password = 'pscale_pw_k5HpOePAQkXH0XNiUNBLnDqaVTlS2jvfdKd62S61zMc'
         database = 'streamlit-study-db'
 
         # Tente estabelecer a conexão
