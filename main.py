@@ -216,7 +216,7 @@ elif op == 'Reservar livro':
                                                 'isbn',
                                                 qt_disponivel - 1,
                                                 check_isbn['isbn'].values[0])
-                        st.experimental_rerun()
+                        # st.experimental_rerun()
 
             else:
                 st.success(f'Não há exemplares deste livro disponíveis para reserva.')
@@ -236,7 +236,10 @@ elif 'Devolver livro':
         df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
 
         entrada_isbn = st.text_input('Digite o ISBN do livro: ')
-        entrada_aluno = st.text_input('Digite o nome do aluno: ')
+        nomes_alunos = df_reserva.loc[df_reserva['isbn'] == entrada_isbn, 'nome_aluno'].values
+        entrada_aluno = st.selectbox("Selecione o aluno:", nomes_alunos)
+
+        # entrada_aluno = st.text_input('Digite o nome do aluno: ')
 
         quantidade_disponivel = 0
         check_isbn = pd.DataFrame()

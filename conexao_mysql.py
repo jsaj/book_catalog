@@ -48,7 +48,7 @@ class conexao_banco():
         cursor = connection.cursor()
 
         cursor.execute(
-            f"UPDATE {tabela} SET {coluna_alterar} = {valor_alterar}  WHERE {coluna_condicao} = {valor_condicao}")
+            f"UPDATE {tabela} SET {coluna_alterar} = {valor_alterar}  WHERE {coluna_condicao} = '{valor_condicao}'")
 
         connection.commit()
 
