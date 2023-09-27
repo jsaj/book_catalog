@@ -7,23 +7,39 @@ import pandas as pd
 
 class conexao_mysql():
 
+    # def conectar_banco(self):
+    #     # Configurações de conexão
+    #     host = 'aws.connect.psdb.cloud'
+    #     user = 'glijhrkku43houa3oewn'
+    #     password = 'pscale_pw_k5HpOePAQkXH0XNiUNBLnDqaVTlS2jvfdKd62S61zMc'
+    #     database = 'streamlit-study-db'
+    #
+    #     # Tente estabelecer a conexão
+    #     conexao = mysql.connect(
+    #         host=host,
+    #         user=user,
+    #         password=password,
+    #         database=database
+    #     )
+    #
+    #     return conexao
     def conectar_banco(self):
-        # Configurações de conexão
-        host = 'aws.connect.psdb.cloud'
-        user = 'glijhrkku43houa3oewn'
-        password = 'pscale_pw_k5HpOePAQkXH0XNiUNBLnDqaVTlS2jvfdKd62S61zMc'
-        database = 'streamlit-study-db'
+        # Defina as informações de conexão
+        host = "sql10.freesqldatabase.com"
+        database = "sql10649389"
+        user = "sql10649389"
+        password = "J6UTmuFcCR"
+        port = 3306
 
-        # Tente estabelecer a conexão
-        conexao = mysql.connect(
+            # Conecte-se ao banco de dados
+        connection = mysql.connect(
             host=host,
+            database=database,
             user=user,
             password=password,
-            database=database
-        )
+            port=port)
 
-        return conexao
-
+        return connection
     def insert_data(self, connection, tabela, colunas, valores):
 
         cursor = connection.cursor()

@@ -52,9 +52,9 @@ if op == "Cadastrar livro":
             st.image(BytesIO(image_bytes), width=150)
 
             if st.button("Cadastrar"):
-                colunas = '(isbn, titulo, capa,quantidade_disponivel)'
+                colunas = '(isbn, titulo, capa, qt_disponivel)'
                 valores = f"('{isbn}', '{titulo}', '{capa_url}', '{qtd_disponivel}')"
-                conector_db.insert_data(conexao, 'catalog_book', colunas, valores)
+                conector_db.insert_data(conexao, 'catalogo_livros', colunas, valores)
 
                 st.success("Livro cadastrado com sucesso!")
         except Exception as e:
@@ -64,7 +64,7 @@ if op == "Cadastrar livro":
 
 elif op == 'Catálogo':
     # Carregar o catálogo de livros
-    df_catalogo = conector_db.read_data(conexao, 'catalog_book')
+    df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
 
     entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
 
@@ -100,7 +100,7 @@ elif op == 'Catálogo':
                     isbn = df_catalogo.iloc[index]['isbn']
                     titulo = df_catalogo.iloc[index]['titulo']
                     capa_url = df_catalogo.iloc[index]['capa']
-                    quantidade_disponivel = df_catalogo.iloc[index]['quantidade_disponivel']
+                    quantidade_disponivel = df_catalogo.iloc[index]['qt_disponivel']
 
                     try:
                         # Baixar a imagem do URL e redimensioná-la
@@ -141,7 +141,7 @@ elif op == 'Catálogo':
 
                         # Exibir a imagem redimensionada com a marca "X" e texto, se aplicável
                         columns[col].write(f"<p style='font-size: 14px; margin-bottom: 0px;'>ISBN: {isbn}</p>", unsafe_allow_html=True)
-                        qt_disponivel = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'quantidade_disponivel'].values[0]
+                        qt_disponivel = df_catalogo.loc[df_catalogo['isbn'] == isbn, 'qt_disponivel'].values[0]
                         # if qt_disponivel > 1:
                         #     columns[col].write(f"<p style='font-size: 14px;'>{qt_disponivel} Exemplares</p>", unsafe_allow_html=True)
                         # elif qt_disponivel == 1:
@@ -157,7 +157,7 @@ elif op == 'Catálogo':
 
 elif op == 'Reservar livro':
     st.header("Reservar Livro")
-    df_catalogo = conector_db.read_data(conexao, 'catalog_book')
+    df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
 
     entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
 
@@ -167,7 +167,7 @@ elif op == 'Reservar livro':
             | (df_catalogo['titulo'].str.contains(entrada_isbn_titulo))]
 
         if entrada_isbn_titulo != '' and len(check_isbn) > 0:
-            qt_disponivel = check_isbn['quantidade_disponivel'].values[0]
+            qt_disponivel = check_isbn['qt_disponivel'].values[0]
 
             if qt_disponivel >= 1:
                 if qt_disponivel > 1:
@@ -207,12 +207,12 @@ elif op == 'Reservar livro':
 
                         colunas = '(isbn, nome_aluno, data_reserva)'
                         valores = f"('{check_isbn['isbn'].values[0]}', '{nome_aluno}', '{data_reserva}')"
-                        conector_db.insert_data(conexao, 'reserva_livro', colunas, valores)
+                        conector_db.insert_data(conexao, 'reserva_livros', colunas, valores)
                         form_info.success(f'Livro reservado com sucesso!')
 
                         conector_db.update_data(conexao,
-                                                'catalog_book',
-                                                'quantidade_disponivel',
+                                                'catalogo_livros',
+                                                'qt_disponivel',
                                                 'isbn',
                                                 qt_disponivel - 1,
                                                 check_isbn['isbn'].values[0])
@@ -232,8 +232,8 @@ elif 'Devolver livro':
     try:
         st.header("Reservar Livro")
 
-        df_reserva = conector_db.read_data(conexao, 'reserva_livro')
-        df_catalogo = conector_db.read_data(conexao, 'catalog_book')
+        df_reserva = conector_db.read_data(conexao, 'reserva_livros')
+        df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
 
         entrada_isbn = st.text_input('Digite o ISBN do livro: ')
         entrada_aluno = st.text_input('Digite o nome do aluno: ')
@@ -249,7 +249,7 @@ elif 'Devolver livro':
 
             if not check_isbn.empty:
                 quantidade_disponivel = \
-                df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'quantidade_disponivel'].values[0]
+                df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'qt_disponivel'].values[0]
 
         elif entrada_isbn and entrada_aluno:
             entrada_aluno = entrada_aluno.lower()
@@ -259,7 +259,7 @@ elif 'Devolver livro':
 
             if not check_isbn.empty:
                 quantidade_disponivel = \
-                df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'quantidade_disponivel'].values[0]
+                df_catalogo.loc[df_catalogo['isbn'] == entrada_isbn, 'qt_disponivel'].values[0]
 
         if not entrada_isbn and not entrada_aluno:
             st.write('Preencha os campos solicitados!')
@@ -307,17 +307,17 @@ elif 'Devolver livro':
 
                         colunas = '(isbn, nome_aluno, data_devolucao)'
                         valores = f"('{check_isbn['isbn'].values[0]}', '{check_isbn['nome_aluno'].values[0]}', '{data_devolucao}')"
-                        conector_db.insert_data(conexao, 'devolucao_livro', colunas, valores)
+                        conector_db.insert_data(conexao, 'devolucao_livros', colunas, valores)
 
                         colunas = ['isbn', 'nome_aluno']
                         valores = [check_isbn['isbn'].values[0], check_isbn['nome_aluno'].values[0]]
-                        conector_db.drop_data(conexao, 'reserva_livro', colunas, valores)
+                        conector_db.drop_data(conexao, 'reserva_livros', colunas, valores)
 
                         st.success(f'Devolução realizada com sucesso!')
 
                         conector_db.update_data(conexao,
-                                                'catalog_book',
-                                                'quantidade_disponivel',
+                                                'catalogo_livros',
+                                                'qt_disponivel',
                                                 'isbn',
                                                 quantidade_disponivel + 1,
                                                 check_isbn['isbn'].values[0])
