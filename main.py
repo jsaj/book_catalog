@@ -433,52 +433,87 @@ elif op == 'Atualizar livro':
             titulo_old = check_isbn['titulo'].values[0]
             qt_disponivel_old = check_isbn['qt_disponivel'].values[0]
 
-            form_info = st.form('Informações do livro')
+            # form_info = st.form('Informações do livro')
 
-            with form_info:
-                st.markdown(
-                    f'<h1 style="text-align:center;">Informações do livro</h1>',
-                    unsafe_allow_html=True
-                )
-                col1, col2 = st.columns(2)
+            # with form_info:
+            st.markdown(
+                f'<h1 style="text-align:center;">Informações do livro</h1>',
+                unsafe_allow_html=True
+            )
+            col1, col2 = st.columns(2)
 
-                with col1:
-                    isbn_new = st.text_input('Digite o novo ISBN do livro:',
-                                             placeholder=f'ISBN antigo: {isbn_old}', value=isbn_old)
-                    titulo_new = st.text_input('Digite o novo título do livro:',
-                                               placeholder=f'Título antigo: {titulo_old}', value=titulo_old)
+            with col1:
+                isbn_new = st.text_input('Digite o novo ISBN do livro:',
+                                         placeholder=f'ISBN antigo: {isbn_old}', value=isbn_old)
+                titulo_new = st.text_input('Digite o novo título do livro:',
+                                           placeholder=f'Título antigo: {titulo_old}', value=titulo_old)
 
-                    # capa_new = obj.atualizar_capa(capa_op, check_isbn)
-                    # capa_new = capa_url
-                    qt_disponivel_new = st.text_input('Atualize a quantidade disponível:',
-                                               placeholder=f'Quantidade antiga: {qt_disponivel_old}', value=qt_disponivel_old)
+                # capa_new = obj.atualizar_capa(capa_op, check_isbn)
+                # capa_new = capa_url
+                qt_disponivel_new = st.text_input('Atualize a quantidade disponível:',
+                                           placeholder=f'Quantidade antiga: {qt_disponivel_old}', value=qt_disponivel_old)
 
-                    st.text("")  # Adiciona um espaço em branco para ajustar a altura
+                uploaded_file = st.file_uploader("Escolha uma imagem...", type=["jpg", "jpeg", "png"])
 
-                with col2:
-                    capa_url = check_isbn['capa'].values[0]
-                    image_width = 250
-                    image_height = 335
+                st.text("")  # Adiciona um espaço em branco para ajustar a altura
 
-                    response = requests.get(capa_url)
-                    if response.status_code == 200:
-                        capa_bytes = BytesIO(response.content)
-                        capa = Image.open(capa_bytes)
+            with col2:
+                capa_url = check_isbn['capa'].values[0]
+                image_width = 300
+                image_height = 415
 
-                        capa = capa.resize((image_width, image_height))
+                response = requests.get(capa_url)
+                if response.status_code == 200:
+                    capa_bytes = BytesIO(response.content)
+                    capa = Image.open(capa_bytes)
+
+                    capa = capa.resize((image_width, image_height))
+                    if uploaded_file is not None:
+
+                        import streamlit as st
+                        import cloudinary.uploader as cloud
+                        import cloudinary
+                        import datetime
+
+                        cloudinary.config(
+                            cloud_name="dkghhlnd0",
+                            api_key="948724374218928",
+                            api_secret="-9BsrP3KecILf6i_0jyMl9KGbzU"
+                        )
+
+                        current_timestamp = int(datetime.datetime.now().timestamp())
+                        image_data = uploaded_file.read()  # Lê os bytes da imagem
+
+                        # Faça o upload da imagem para o Cloudinary com a hora atual
+                        upload_result = cloud.upload(
+                            image_data,
+                            timestamp=current_timestamp
+                        )
+
+                        capa_url = str(upload_result["secure_url"])
+
+                        uploaded_file = Image.open(uploaded_file)
+                        uploaded_file = uploaded_file.resize((image_width, image_height))
+                        st.image(uploaded_file)
+
+
+
+                    else:
                         st.image(capa)
-                        # st.image(capa, width=image_width, height=image_height)
+                    # st.image(capa, width=image_width, height=image_height)
+                #
+            # if form_info.form_submit_button('Confirmar atualização'):
 
-                if form_info.form_submit_button('Confirmar atualização'):
+            if st.button('Confirmar atualização'):
+            #
+                colunas = ['isbn']
+                valores = [isbn_old]
+                conector_db.drop_data(conexao, 'catalogo_livros', colunas, valores)
 
-                    colunas = ['isbn']
-                    valores = [isbn_old]
-                    conector_db.drop_data(conexao, 'catalogo_livros', colunas, valores)
-
-                    colunas = '(isbn, titulo, capa, qt_disponivel)'
-                    valores = f"('{isbn_new}', '{titulo_new}', '{capa_url}', {qt_disponivel_new})"
-                    conector_db.insert_data(conexao, 'catalogo_livros', colunas, valores)
-                    form_info.success(f'Livro atualizado com sucesso!')
+                colunas = '(isbn, titulo, capa, qt_disponivel)'
+                valores = f"('{isbn_new}', '{titulo_new}', '{capa_url}', {qt_disponivel_new})"
+                conector_db.insert_data(conexao, 'catalogo_livros', colunas, valores)
+                st.success(f'Livro atualizado com sucesso!')
 
                     # st.experimental_rerun()
 
@@ -495,7 +530,6 @@ elif op == 'Remover livro':
     df_catalogo = conector_db.read_data(conexao, 'catalogo_livros')
 
     entrada_isbn_titulo = st.text_input('Digite o ISBN ou título do livro: ')
-
     try:
         check_isbn = df_catalogo.loc[
             (df_catalogo['isbn'].str.contains(entrada_isbn_titulo))
