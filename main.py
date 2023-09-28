@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
 from catalog_creation import catalog_creation
+import cloudinary.uploader as cloud
 import cloudinary
 from conexao_mysql import conexao_banco
 import datetime
@@ -480,7 +481,7 @@ elif op == 'Atualizar livro':
                         image_data = uploaded_file.read()  # Lê os bytes da imagem
 
                         # Faça o upload da imagem para o Cloudinary com a hora atual
-                        upload_result = cloudinary.uploader.upload(
+                        upload_result = cloud.upload(
                             image_data,
                             timestamp=current_timestamp
                         )
