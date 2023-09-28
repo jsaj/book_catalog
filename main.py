@@ -6,6 +6,9 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
 from catalog_creation import catalog_creation
+import streamlit as st
+import cloudinary.uploader as cloud
+import cloudinary
 
 from conexao_mysql import conexao_banco
 import datetime
@@ -469,11 +472,6 @@ elif op == 'Atualizar livro':
 
                     capa = capa.resize((image_width, image_height))
                     if uploaded_file is not None:
-
-                        import streamlit as st
-                        import cloudinary.uploader as cloud
-                        import cloudinary
-                        import datetime
 
                         cloudinary.config(
                             cloud_name="dkghhlnd0",
