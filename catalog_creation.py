@@ -96,10 +96,24 @@ class catalog_creation():
     #         #
     #         # st.write(f"Nenhum link encontrado após {max_attempts} tentativas.")
     #         return None
-    def find_url_book(self, isbn, max_attempts=10):
-        url = f'https://www.amazon.com.br/s?i=stripbooks&rh=p_66%3A{isbn}&s=relevanceexprank&Adv-Srch-Books-Submit.x=0&Adv-Srch-Books-Submit.y=0&unfiltered=1&ref=sr_adv_b'
 
+    def generate_amazon_link(self, book_title):
+        # Substitua os espaços por '+' e encode para URL
+        encoded_title = "+".join(book_title.split())
+
+        # Crie a URL da pesquisa na Amazon com o título codificado
+        amazon_url = f"https://www.amazon.com.br/s?i=stripbooks&rh=p_28:{encoded_title}&s=relevanceexprank&Adv-Srch-Books-Submit.x=0&Adv-Srch-Books-Submit.y=0&unfiltered=1&ref=sr_adv_b"
+
+        return amazon_url
+
+    def find_url_book(self, op_cadastro, value, max_attempts=10):
         titulo, capa_url = None, None
+
+        if op_cadastro == 'ISBN':
+            url = f'https://www.amazon.com.br/s?i=stripbooks&rh=p_66%3A{value}&s=relevanceexprank&Adv-Srch-Books-Submit.x=0&Adv-Srch-Books-Submit.y=0&unfiltered=1&ref=sr_adv_b'
+        else:
+            url = self.generate_amazon_link(value)
+
         for _ in range(max_attempts):
 
             response = requests.get(url)
